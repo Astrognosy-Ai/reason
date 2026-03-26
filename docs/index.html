@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>reason:// — The Reasoning Namespace Protocol</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #0a0a0f;
+      color: #e8e8f0;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .hero {
+      padding: 80px 24px 64px;
+      text-align: center;
+      border-bottom: 1px solid #1e1e2e;
+    }
+
+    .scheme {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 3rem;
+      font-weight: 700;
+      color: #7c6af5;
+      letter-spacing: -0.5px;
+      margin-bottom: 24px;
+    }
+
+    .tagline {
+      font-size: 1.25rem;
+      color: #9090aa;
+      max-width: 600px;
+      margin: 0 auto 40px;
+    }
+
+    .tagline strong {
+      color: #e8e8f0;
+    }
+
+    .cta-group {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+
+    .btn:hover { opacity: 0.85; }
+
+    .btn-primary {
+      background: #7c6af5;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #1e1e2e;
+      color: #c0c0d8;
+      border: 1px solid #2e2e42;
+    }
+
+    .section {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 64px 24px;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: #e8e8f0;
+      margin-bottom: 16px;
+    }
+
+    p {
+      color: #9090aa;
+      margin-bottom: 16px;
+    }
+
+    .code-block {
+      background: #0e0e18;
+      border: 1px solid #1e1e2e;
+      border-radius: 10px;
+      padding: 24px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.875rem;
+      color: #c0c0d8;
+      overflow-x: auto;
+      margin: 24px 0;
+      line-height: 1.7;
+    }
+
+    .comment { color: #555570; }
+    .keyword { color: #7c6af5; }
+    .string { color: #6af59a; }
+    .number { color: #f5a06a; }
+    .field { color: #6ab4f5; }
+
+    .uri-examples {
+      display: grid;
+      gap: 12px;
+      margin: 24px 0;
+    }
+
+    .uri-pill {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.9rem;
+      background: #0e0e18;
+      border: 1px solid #1e1e2e;
+      border-left: 3px solid #7c6af5;
+      border-radius: 6px;
+      padding: 12px 18px;
+      color: #c0c0d8;
+    }
+
+    .uri-pill .domain { color: #7c6af5; }
+    .uri-pill .sep { color: #444460; }
+    .uri-pill .category { color: #6ab4f5; }
+    .uri-pill .task { color: #6af59a; }
+
+    .grid-three {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin: 32px 0;
+    }
+
+    .card {
+      background: #0e0e18;
+      border: 1px solid #1e1e2e;
+      border-radius: 10px;
+      padding: 24px;
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #e8e8f0;
+      margin-bottom: 8px;
+    }
+
+    .card p {
+      font-size: 0.875rem;
+      color: #70708a;
+      margin: 0;
+    }
+
+    .stack-diagram {
+      background: #0e0e18;
+      border: 1px solid #1e1e2e;
+      border-radius: 10px;
+      padding: 32px;
+      margin: 24px 0;
+    }
+
+    .stack-layer {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+    }
+
+    .stack-layer.active { background: #14143a; border: 1px solid #7c6af5; }
+    .stack-layer.mid { background: #101828; border: 1px solid #1e3a5a; }
+    .stack-layer.bottom { background: #0e0e18; border: 1px solid #1e1e2e; }
+
+    .stack-label {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .stack-layer.active .stack-label { color: #7c6af5; }
+    .stack-layer.mid .stack-label { color: #6ab4f5; }
+    .stack-layer.bottom .stack-label { color: #70708a; }
+
+    .stack-desc { font-size: 0.85rem; color: #70708a; }
+    .stack-arrow { text-align: center; color: #2e2e42; font-size: 1.2rem; padding: 2px 0; }
+
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 24px 0;
+    }
+
+    .link-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #9090aa;
+      font-size: 0.925rem;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #1e1e2e;
+      background: #0e0e18;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .link-item:hover { border-color: #7c6af5; color: #e8e8f0; }
+    .link-item .icon { font-size: 1.1rem; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #1e1e2e;
+    }
+
+    footer {
+      text-align: center;
+      padding: 48px 24px;
+      color: #444460;
+      font-size: 0.85rem;
+    }
+
+    footer a { color: #555570; text-decoration: none; }
+    footer a:hover { color: #9090aa; }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="scheme">reason://</div>
+    <p class="tagline">
+      <strong>The DNS for agent intelligence.</strong><br>
+      An open URI scheme that makes learned reasoning globally discoverable — without sharing data.
+    </p>
+    <div class="cta-group">
+      <a href="EXPLAINER.md" class="btn btn-primary">Read the Explainer</a>
+      <a href="https://github.com/Astrognosy-Ai/reason" class="btn btn-secondary">GitHub Repository</a>
+      <a href="../REASON_PROTOCOL_SPEC_v1.md" class="btn btn-secondary">Protocol Spec</a>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>One line of code. The best-supported artifact for any named task.</h2>
+    <div class="code-block">
+<span class="comment"># Any agent. Any institution. One call.</span>
+<span class="keyword">from</span> reason_py <span class="keyword">import</span> ReasonClient
+
+client = ReasonClient()
+artifact = client.resolve(<span class="string">"reason://medicine/records/longitudinal-maintenance-prediction"</span>)
+
+<span class="comment"># Apply the pattern to your own data — no data shared</span>
+<span class="keyword">for</span> patient <span class="keyword">in</span> my_records:
+    score = compare(patient.observation_timeline, artifact.pattern)
+    <span class="keyword">if</span> score &gt; artifact.thresholds.<span class="field">high_confidence</span>:
+        flag_for_review(patient)
+    </div>
+
+    <h2>Named reasoning capabilities</h2>
+    <p>Every reason:// URI addresses a specific, bounded reasoning capability. Artifacts are registered under structured paths:</p>
+
+    <div class="uri-examples">
+      <div class="uri-pill"><span class="domain">reason</span><span class="sep">://</span><span class="domain">medicine</span><span class="sep">/</span><span class="category">records</span><span class="sep">/</span><span class="task">longitudinal-maintenance-prediction</span></div>
+      <div class="uri-pill"><span class="domain">reason</span><span class="sep">://</span><span class="domain">finance</span><span class="sep">/</span><span class="category">fraud</span><span class="sep">/</span><span class="task">anomaly-detection</span></div>
+      <div class="uri-pill"><span class="domain">reason</span><span class="sep">://</span><span class="domain">cybersecurity</span><span class="sep">/</span><span class="category">network</span><span class="sep">/</span><span class="task">port-scan-classification</span></div>
+      <div class="uri-pill"><span class="domain">reason</span><span class="sep">://</span><span class="domain">manufacturing</span><span class="sep">/</span><span class="category">bearing</span><span class="sep">/</span><span class="task">fault-signature</span></div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <h2>Only winners enter</h2>
+    <p>Artifacts reach the registry by winning a live arbitration round — competitive evaluation against all other submissions on the strength of supporting evidence. No direct deposit. No self-reported scores.</p>
+    <p>The score an artifact carries is immutable. It was earned in competition, validated by an identity-free scoring mechanism, and anchored to a public audit record. Consumers can independently verify any score.</p>
+
+    <div class="grid-three">
+      <div class="card">
+        <h3>Quality-gated entry</h3>
+        <p>Every artifact earned its score in competition. The registry is a hall of validated winners, not an open submission box.</p>
+      </div>
+      <div class="card">
+        <h3>No data transferred</h3>
+        <p>Artifacts contain compressed structural patterns — mathematically non-invertible. Raw data cannot be recovered. The schema has no field for it.</p>
+      </div>
+      <div class="card">
+        <h3>Immutable provenance</h3>
+        <p>Every artifact carries a SHA-256 audit hash linking it to the arbitration event that produced it. Independently verifiable.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <h2>The stack</h2>
+    <div class="stack-diagram">
+      <div class="stack-layer active">
+        <div>
+          <div class="stack-label">reason://</div>
+          <div class="stack-desc">URI addressing · namespace registry · quality gate · resolution</div>
+        </div>
+      </div>
+      <div class="stack-arrow">↓</div>
+      <div class="stack-layer mid">
+        <div>
+          <div class="stack-label">Xport</div>
+          <div class="stack-desc">Astrognosy's reference WARF node · arbitration engine · artifact store</div>
+        </div>
+      </div>
+      <div class="stack-arrow">↓</div>
+      <div class="stack-layer mid">
+        <div>
+          <div class="stack-label">WARF Protocol</div>
+          <div class="stack-desc">Open arbitration standard · cargo packages · audit chain · CC BY 4.0</div>
+        </div>
+      </div>
+      <div class="stack-arrow">↓</div>
+      <div class="stack-layer bottom">
+        <div>
+          <div class="stack-label">PCF</div>
+          <div class="stack-desc">Patent-protected convergence scoring · deterministic · identity-free</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <h2>Documentation</h2>
+    <div class="links">
+      <a href="EXPLAINER.md" class="link-item">
+        <span class="icon">&#128196;</span>
+        <span><strong>Explainer</strong> — The Hospital A/B walkthrough. How reason:// works in concrete terms.</span>
+      </a>
+      <a href="../REASON_PROTOCOL_SPEC_v1.md" class="link-item">
+        <span class="icon">&#128214;</span>
+        <span><strong>Protocol Specification v1.0</strong> — Full technical specification of the reason:// protocol.</span>
+      </a>
+      <a href="NAMESPACE_REGISTRY.md" class="link-item">
+        <span class="icon">&#128195;</span>
+        <span><strong>Namespace Registry</strong> — Approved domains, registered URIs, and how to request a namespace.</span>
+      </a>
+      <a href="RESOLUTION.md" class="link-item">
+        <span class="icon">&#9881;</span>
+        <span><strong>Resolution Mechanics</strong> — How a URI becomes an artifact. Cache, lookup, leader selection.</span>
+      </a>
+      <a href="../sdk/README.md" class="link-item">
+        <span class="icon">&#128039;</span>
+        <span><strong>Python SDK</strong> — reason_py client: resolve(), register(), and artifact models.</span>
+      </a>
+      <a href="https://github.com/rarebeariam/warf-protocol" class="link-item">
+        <span class="icon">&#128279;</span>
+        <span><strong>WARF Protocol</strong> — The open arbitration standard that reason:// is built on.</span>
+      </a>
+    </div>
+  </div>
+
+  <footer>
+    <p>reason:// Protocol Specification — CC BY 4.0</p>
+    <p style="margin-top:8px;">Built by <a href="https://pcfic.com">Astrognosy AI / Pacific Intelligence Concepts</a></p>
+  </footer>
+
+</body>
+</html>
