@@ -1,0 +1,14 @@
+[project]
+name = "reason-py"
+version = "0.1.0"
+description = "Official Python client for reason:// — the reasoning infrastructure for the agentic internet"
+authors = [{ name = "Astrognosy AI", email = "team@pcfic.com" }]
+license = { text = "CC BY 4.0" }
+requires-python = ">=3.10"
+dependencies = ["requests>=2.32.0", "numpy>=1.26.0"]
+readme = "../../README.md"
+keywords = ["reasoning", "agents", "protocol", "warf", "pcf"]
+
+[project.urls]
+Homepage = "https://github.com/astrognosy/reason"
+Documentation = "https://warfdemo.streamlit.app"
