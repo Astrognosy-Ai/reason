@@ -7,7 +7,7 @@ interacting with the reason:// namespace registry via an Xport node.
 Usage:
     from reason_py import ReasonClient
 
-    client = ReasonClient(endpoint="https://xport.astrognosy.ai")
+    client = ReasonClient(endpoint="https://xport.astrognosy.com")
 
     # Resolve a named reasoning artifact
     artifact = client.resolve("reason://finance/fraud/anomaly-detection")
@@ -30,7 +30,7 @@ from typing import Optional
 from .models import ReasonArtifact
 
 # Default endpoint — Astrognosy's reference Xport node (Node 0)
-DEFAULT_ENDPOINT = "https://xport.astrognosy.ai"
+DEFAULT_ENDPOINT = "https://xport.astrognosy.com"
 
 # Valid reason:// URI pattern
 URI_PATTERN = re.compile(
@@ -118,13 +118,12 @@ class ReasonClient:
         self._validate_uri(uri)
 
         encoded_uri = urllib.parse.quote(uri, safe="")
-        url = f"{self.endpoint}/reason/resolve/{encoded_uri}"
+        url = f"{self.endpoint}/resolve?address={encoded_uri}"
         if bypass_cache:
-            url += "?bypass_cache=true"
+            url += "&bypass_cache=true"
 
         response = self._get(url)
-        artifact_data = response.get("artifact") or response
-        return ReasonArtifact.from_dict(artifact_data)
+        return ReasonArtifact.from_dict(response)
 
     def register(self, uri: str, artifact: ReasonArtifact) -> bool:
         """
@@ -161,15 +160,33 @@ class ReasonClient:
         """
         self._validate_uri(uri)
 
-        url = f"{self.endpoint}/reason/register"
+        url = f"{self.endpoint}/register"
         payload = {
-            "uri": uri,
-            "artifact": artifact.to_dict(),
+            "address": uri,
+            "pattern": artifact.pattern,
+            "thresholds": {
+                "high_confidence": artifact.thresholds.high_confidence,
+                "moderate_confidence": artifact.thresholds.moderate_confidence,
+                "minimum_signal": artifact.thresholds.minimum_signal,
+            },
+            "n_examples": artifact.metadata.evidence_count,
+            "agent_id": artifact.provenance.agent_id,
+            "task_description": (
+                f"{artifact.metadata.domain}/{artifact.metadata.category}"
+                f"/{artifact.metadata.task}"
+            ),
+            "metadata": {
+                "evidence_count": artifact.metadata.evidence_count,
+                "domain": artifact.metadata.domain,
+                "category": artifact.metadata.category,
+                "task": artifact.metadata.task,
+                "version": artifact.metadata.version,
+            },
         }
 
         try:
             response = self._post(url, payload)
-            return response.get("registered", False)
+            return response.get("status") == "deposited"
         except ReasonRegistrationError:
             raise
         except Exception as exc:
@@ -197,7 +214,7 @@ class ReasonClient:
             assert computed == artifact.provenance.audit_hash
         """
         encoded_id = urllib.parse.quote(arbitration_event_id, safe="")
-        url = f"{self.endpoint}/reason/audit/{encoded_id}"
+        url = f"{self.endpoint}/audit/{encoded_id}"
         response = self._get(url)
         return response.get("record", "")
 
@@ -217,9 +234,9 @@ class ReasonClient:
         self._validate_uri(uri)
 
         encoded_uri = urllib.parse.quote(uri, safe="")
-        url = f"{self.endpoint}/reason/artifacts/{encoded_uri}"
+        url = f"{self.endpoint}/artifacts?address={encoded_uri}"
         response = self._get(url)
-        artifacts_data = response.get("artifacts", [])
+        artifacts_data = response if isinstance(response, list) else response.get("artifacts", [])
         return [ReasonArtifact.from_dict(a) for a in artifacts_data]
 
     # ------------------------------------------------------------------
@@ -271,21 +288,4 @@ class ReasonClient:
         self._add_headers(req)
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                body = resp.read().decode("utf-8")
-                return json.loads(body)
-        except urllib.error.HTTPError as exc:
-            body = exc.read().decode("utf-8", errors="replace")
-            raise ReasonRegistrationError(
-                f"HTTP {exc.code} from node: {body[:200]}"
-            ) from exc
-        except urllib.error.URLError as exc:
-            raise ReasonRegistrationError(
-                f"Node unreachable at {self.endpoint}: {exc.reason}"
-            ) from exc
-
-    def _add_headers(self, req: urllib.request.Request) -> None:
-        """Add standard headers including optional API key."""
-        req.add_header("Accept", "application/json")
-        req.add_header("User-Agent", "reason-py/0.1.0")
-        if self.api_key:
-            req.add_header("Authorization", f"Bearer {self.api_key}")
+ 

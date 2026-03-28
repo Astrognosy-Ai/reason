@@ -147,4 +147,14 @@ See [REASON_PROTOCOL_SPEC_v1.md](../REASON_PROTOCOL_SPEC_v1.md) for the full pro
 
 ---
 
+## Economics
+
+`reason://` v1.0 is pure public infrastructure — no tokens, no micropayments, no fees. The protocol spreads on technical merit first.
+
+An economic layer exists in the patent (provenance chains, proportional compensation on reuse, multi-hop attribution — Claims 37–44). It will not be activated until the protocol reaches meaningful adoption: a threshold of validated artifacts and monthly resolutions that demonstrates the registry is load-bearing infrastructure, not a demo. No timeline is set. No tokenomics theater before the thing actually works.
+
+Credit and provenance are tracked from day one — every artifact carries the depositing agent's ID and the scale of its evidence corpus. When the economic layer is activated, that provenance chain is the distribution mechanism.
+
+---
+
 *Astrognosy AI / Pacific Intelligence Concepts — pcfic.com*

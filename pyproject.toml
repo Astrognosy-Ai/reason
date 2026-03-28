@@ -1,17 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
 [project]
 name = "reason-py"
 version = "0.1.0"
 description = "Official Python client for reason:// — the reasoning infrastructure for the agentic internet"
-authors = [{ name = "Astrognosy AI", email = "team@pcfic.com" }]
+authors = [{ name = "Jacob Westerbeck", email = "jacob@pcfic.com" }]
 license = { text = "CC BY 4.0" }
 requires-python = ">=3.10"
-dependencies = [
-    "requests>=2.32.0",
-    "numpy>=1.26.0",      # for compare() — optional in pure mode
+dependencies = ["numpy>=1.24.0"]
+readme = "sdk/reason_py/README.md"
+keywords = ["reasoning", "agents", "protocol", "warf", "ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: Free To Use But Restricted",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-readme = "README.md"
-keywords = ["reasoning", "agents", "protocol", "warf", "pcf"]
 
 [project.urls]
-Homepage = "https://github.com/astrognosy/reason"
-Documentation = "https://warfdemo.streamlit.app"
+Homepage = "https://github.com/Astrognosy-Ai/reason"
+Documentation = "https://github.com/Astrognosy-Ai/reason/blob/main/sdk/reason_py/README.md"
+"Bug Tracker" = "https://github.com/Astrognosy-Ai/reason/issues"
+
+[tool.setuptools.packages.find]
+where = ["sdk"]
+include = ["reason_py*"]

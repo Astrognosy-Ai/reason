@@ -23,7 +23,12 @@ Full license text: https://creativecommons.org/licenses/by/4.0/legalcode
 
 ---
 
-This license applies to the reason:// protocol specification and
-documentation. It does not apply to the reference implementation
-software (Xport), which is separately licensed, or to the namespace
-registry, which is operated by Astrognosy AI.
+This license applies to the reason:// protocol specification, SDK,
+documentation, and reference node. It does not apply to the Xport
+production infrastructure or the namespace registry, both operated
+by Astrognosy AI.
+
+Note: The PCF (Positional Correlation Field) scoring mechanism used
+internally by WARF arbitration nodes is patent-protected (filed
+March 22, 2026). The algorithm implementation is not included in
+this repository and is not covered by this license.
