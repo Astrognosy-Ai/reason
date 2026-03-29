@@ -7,7 +7,8 @@ reason_py — Official Python client for the reason:// protocol.
     artifact = client.resolve("reason://finance/fraud/synthetic-identity-temporal-motif")
 
     for transaction in my_transactions:
-        similarity = client.compare(transaction.embedding, artifact)
+        features = extract_features(transaction)
+        similarity = client.compare(features, artifact)
         if similarity > artifact.thresholds.high_confidence:
             flag(transaction)
 """

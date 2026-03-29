@@ -61,7 +61,7 @@ class ArtifactProvenance:
     agent_id: str
     deposited_at: str          # ISO 8601 timestamp
     arbitration_event_id: str
-    audit_hash: str            # sha256:<hex> — verifiable against node audit chain
+    audit_hash: str            # bare 64-char hex SHA-256 — verifiable against node audit chain
 
 
 @dataclass

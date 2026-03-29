@@ -453,6 +453,16 @@ def register(req: RegisterRequest, _: None = Depends(require_api_key)) -> Dict[s
             "address": req.address,
         }
 
+    # Submitter must beat the null baseline — score alone isn't enough
+    winning_agent = broker_result.get("winning_agent", "__null_baseline__")
+    if winning_agent != req.agent_id:
+        return {
+            "status": "rejected",
+            "reason": "Submission did not beat null baseline in arbitration.",
+            "score": pcf_score,
+            "address": req.address,
+        }
+
     # If existing artifact has higher score, reject challenger
     if existing and existing["score"] >= pcf_score:
         return {
@@ -467,4 +477,53 @@ def register(req: RegisterRequest, _: None = Depends(require_api_key)) -> Dict[s
 
     # Deposit artifact
     artifact_id = uuid.uuid4().hex
-    d
+    deposited_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    audit_hash = _compute_audit_hash(
+        artifact_id=artifact_id,
+        address=req.address,
+        score=pcf_score,
+        agent_id=req.agent_id,
+        timestamp=deposited_at,
+    )
+
+    uri_match = REASON_URI_PATTERN.match(req.address)
+    domain = req.metadata.get("domain", uri_match.group(1))
+    category = req.metadata.get("category", uri_match.group(2))
+    task = req.metadata.get("task", uri_match.group(3))
+
+    db = get_db()
+    db.execute(
+        """
+        INSERT OR REPLACE INTO artifacts
+            (artifact_id, address, domain, category, task,
+             pattern_json, thresholds_json, score, n_examples,
+             agent_id, deposited_at, audit_hash, metadata_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            artifact_id,
+            req.address,
+            domain,
+            category,
+            task,
+            json.dumps(req.pattern),
+            json.dumps(req.thresholds),
+            pcf_score,
+            req.n_examples,
+            req.agent_id,
+            deposited_at,
+            audit_hash,
+            json.dumps(req.metadata),
+        ),
+    )
+    db.commit()
+    db.close()
+
+    return {
+        "status": "deposited",
+        "artifact_id": artifact_id,
+        "address": req.address,
+        "score": pcf_score,
+        "deposited_at": deposited_at,
+        "audit_hash": audit_hash,
+    }

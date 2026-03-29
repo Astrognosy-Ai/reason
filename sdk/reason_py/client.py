@@ -25,7 +25,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Optional
+from typing import List, Optional
 
 from .models import ReasonArtifact
 
@@ -288,4 +288,46 @@ class ReasonClient:
         self._add_headers(req)
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
- 
+                body = resp.read().decode("utf-8")
+                return json.loads(body)
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            try:
+                err = json.loads(body)
+                detail = err.get("detail", err.get("error", "unknown_error"))
+            except Exception:
+                detail = "unknown_error"
+            raise ReasonRegistrationError(
+                f"HTTP {exc.code} from node: {detail}"
+            ) from exc
+        except urllib.error.URLError as exc:
+            raise ReasonRegistrationError(
+                f"Node unreachable at {self.endpoint}: {exc.reason}"
+            ) from exc
+
+    def _add_headers(self, req: urllib.request.Request) -> None:
+        """Add authentication headers to a request if api_key is set."""
+        if self.api_key:
+            req.add_header("Authorization", f"Bearer {self.api_key}")
+
+    def compare(self, features: List[float], artifact: ReasonArtifact) -> float:
+        """
+        Compute cosine similarity between a feature vector and an artifact's pattern.
+
+        Local operation — no network I/O. Use to measure how closely a local
+        observation matches the reasoning pattern in a resolved artifact.
+
+        Args:
+            features: Feature vector from a local observation.
+            artifact: A ReasonArtifact returned by resolve().
+
+        Returns:
+            Cosine similarity in [0.0, 1.0]. Returns 0.0 for zero-norm vectors.
+        """
+        pattern = artifact.pattern
+        dot = sum(a * b for a, b in zip(features, pattern))
+        norm_f = sum(a * a for a in features) ** 0.5
+        norm_p = sum(b * b for b in pattern) ** 0.5
+        if norm_f == 0.0 or norm_p == 0.0:
+            return 0.0
+        return dot / (norm_f * norm_p)
