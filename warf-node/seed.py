@@ -35,17 +35,17 @@ import urllib.request
 # ---------------------------------------------------------------------------
 
 def _finance_pattern() -> list:
-    """64-dim centroid for fraud anomaly detection."""
-    base = [
-        0.812, 0.234, 0.567, 0.891, 0.123, 0.456, 0.789, 0.321,
-        0.654, 0.987, 0.210, 0.543, 0.876, 0.109, 0.432, 0.765,
-        0.198, 0.531, 0.864, 0.297, 0.630, 0.963, 0.186, 0.519,
-        0.852, 0.285, 0.618, 0.951, 0.174, 0.507, 0.840, 0.273,
-        0.606, 0.939, 0.162, 0.495, 0.828, 0.261, 0.594, 0.927,
-        0.150, 0.483, 0.816, 0.249, 0.582, 0.915, 0.138, 0.471,
-        0.804, 0.237, 0.570, 0.903, 0.126, 0.459, 0.792, 0.225,
-        0.558, 0.891, 0.114, 0.447, 0.780, 0.213, 0.546, 0.879,
-    ]
+    """6-dim centroid for fraud anomaly detection.
+
+    Matches finance_example.py's extract_features() feature space:
+    [amount_normalized, velocity_score, geo_deviation,
+     time_of_day_score, merchant_risk_score, device_fingerprint_score]
+
+    Values represent a high-signal fraud centroid: elevated amounts,
+    high velocity, large geo deviation, off-hours timing, risky merchant,
+    anomalous device.
+    """
+    base = [0.85, 0.92, 0.88, 0.71, 0.79, 0.83]
     norm = math.sqrt(sum(x * x for x in base))
     return [round(x / norm, 6) for x in base]
 
