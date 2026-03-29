@@ -32,3 +32,8 @@ Documentation = "https://github.com/Astrognosy-Ai/reason/blob/main/sdk/reason_py
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["reason_py*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "e2e: end-to-end tests against a live Xport node (requires network)",
+]
