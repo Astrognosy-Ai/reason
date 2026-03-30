@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reason-py"
-version = "0.1.0"
+version = "0.1.6"
 description = "Official Python client for reason:// — the reasoning infrastructure for the agentic internet"
 authors = [{ name = "Jacob Westerbeck", email = "jacob@pcfic.com" }]
 license = { text = "CC BY 4.0" }
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 dependencies = []
 keywords = ["reasoning", "agents", "protocol", "warf", "ai"]
 classifiers = [
@@ -17,12 +17,17 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: Free To Use But Restricted",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
+
+[project.scripts]
+reason-py = "reason_py.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/Astrognosy-Ai/reason"
