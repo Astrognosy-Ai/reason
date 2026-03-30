@@ -1,5 +1,5 @@
 """
-reason_py — CLI entry point.
+reason_py -- CLI entry point.
 
 Usage:
     python -m reason_py
@@ -9,9 +9,27 @@ Usage:
 from reason_py import __version__
 
 
-HELP = f"""
-reason_py {__version__} — Python client for the reason:// protocol
-https://reason.astrognosy.com
+LOGO = r"""
+           .---------.
+         /             \
+        /  r e a s o n  \
+       |      : / /       |
+       |                  |
+       |   - - - - - - -  |
+       |   - - - - - - -  |
+        \   -----------   /
+         '---------------'
+               | | |
+            ___| | |___
+           |___________|
+           |___________|
+"""
+
+HELP = """
+{logo}
+  reason_py {version} -- Python client for the reason:// protocol
+  https://reason.astrognosy.com
+
 
 QUICK START
 -----------
@@ -24,7 +42,7 @@ QUICK START
 LIVE NODE
 ---------
   https://xport.astrognosy.com
-  (Astrognosy AI — Node 0, reference implementation)
+  (Astrognosy AI - Node 0, reference implementation)
 
 METHODS
 -------
@@ -34,7 +52,7 @@ METHODS
 
   client.compare(features, artifact)
       Cosine similarity between a feature vector and an artifact pattern.
-      Local — no network I/O.
+      Local - no network I/O.
       Returns: float in [0.0, 1.0]
 
   client.list_artifacts(uri)
@@ -54,9 +72,9 @@ ARTIFACT FIELDS
   artifact.uri                              reason:// address
   artifact.pattern                          structural centroid (list of floats)
   artifact.score                            PCF convergence score [0, 1]
-  artifact.thresholds.high_confidence       similarity threshold — flag
-  artifact.thresholds.moderate_confidence   similarity threshold — review
-  artifact.thresholds.minimum_signal        similarity threshold — detect
+  artifact.thresholds.high_confidence       similarity threshold - flag
+  artifact.thresholds.moderate_confidence   similarity threshold - review
+  artifact.thresholds.minimum_signal        similarity threshold - detect
   artifact.provenance.agent_id              depositing agent
   artifact.provenance.audit_hash            sha256:... verifiable hash
   artifact.metadata.evidence_count          training examples used
@@ -78,7 +96,7 @@ LINKS
 
 
 def main():
-    print(HELP)
+    print(HELP.format(logo=LOGO, version=__version__))
 
 
 if __name__ == "__main__":
