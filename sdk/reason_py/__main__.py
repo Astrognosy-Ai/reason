@@ -28,60 +28,65 @@ HELP = """
   https://reason.astrognosy.com
 
 
+INSTALL
+-------
+  $ pip install reason-py
+
+
 QUICK START
 -----------
-  from reason_py import ReasonClient
+  $ python
 
-  client = ReasonClient()
-  artifact = client.resolve("reason://finance/fraud/anomaly-detection")
-  similarity = client.compare(my_features, artifact)
+  >>> from reason_py import ReasonClient
+  >>> client = ReasonClient()
+  >>> artifact = client.resolve("reason://finance/fraud/anomaly-detection")
+  >>> features = [0.12, 0.95, 0.03, 0.41, 0.78, 0.56]   # your feature vector
+  >>> similarity = client.compare(features, artifact)
+  >>> similarity > artifact.thresholds.high_confidence    # True = flag it
+  True
 
-LIVE NODE
----------
-  https://xport.astrognosy.com
-  (Astrognosy AI - Node 0, reference implementation)
 
 METHODS
 -------
-  client.resolve(uri)
-      Fetch the best artifact for a reason:// URI.
-      Returns: ReasonArtifact
+  client.resolve(uri: str) -> ReasonArtifact
+      Fetch the best admitted artifact for a reason:// URI.
 
-  client.compare(features, artifact)
-      Cosine similarity between a feature vector and an artifact pattern.
-      Local - no network I/O.
-      Returns: float in [0.0, 1.0]
+  client.compare(features: list, artifact: ReasonArtifact) -> float
+      Cosine similarity between your feature vector and the artifact pattern.
+      Returns float in [0.0, 1.0].  Local -- no network I/O.
 
-  client.list_artifacts(uri)
+  client.list_artifacts(uri: str) -> list
       All admitted artifacts under a URI, ordered by score descending.
-      Returns: list[ReasonArtifact]
 
-  client.register(uri, artifact)
+  client.register(uri: str, artifact: ReasonArtifact) -> bool
       Register an artifact after winning WARF arbitration.
-      Returns: bool
 
-  client.get_audit_record(event_id)
+  client.get_audit_record(event_id: str) -> str
       Fetch the raw audit record for hash verification.
-      Returns: str
+
 
 ARTIFACT FIELDS
 ---------------
   artifact.uri                              reason:// address
   artifact.pattern                          structural centroid (list of floats)
-  artifact.score                            PCF convergence score [0, 1]
-  artifact.thresholds.high_confidence       similarity threshold - flag
-  artifact.thresholds.moderate_confidence   similarity threshold - review
-  artifact.thresholds.minimum_signal        similarity threshold - detect
+  artifact.score                            PCF convergence score [0.0, 1.0]
+  artifact.thresholds.high_confidence       similarity threshold -- flag
+  artifact.thresholds.moderate_confidence   similarity threshold -- review
+  artifact.thresholds.minimum_signal        similarity threshold -- detect
   artifact.provenance.agent_id              depositing agent
   artifact.provenance.audit_hash            sha256:... verifiable hash
   artifact.metadata.evidence_count          training examples used
   artifact.metadata.version                 artifact version at this URI
 
-LIVE URIS (resolvable now)
---------------------------
+
+LIVE URIS
+---------
   reason://finance/fraud/anomaly-detection
   reason://cybersecurity/network/port-scan-classification
   reason://medicine/records/longitudinal-maintenance-prediction
+
+  Live node: https://xport.astrognosy.com
+
 
 LINKS
 -----
