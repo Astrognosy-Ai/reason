@@ -30,20 +30,40 @@ HELP = """
 
 INSTALL
 -------
-  $ pip install reason-py
+  Windows:   C:\\> pip install reason-py
+  Mac/Linux: $ pip install reason-py
 
 
 QUICK START
 -----------
-  $ python
+  1. Open Python
 
-  >>> from reason_py import ReasonClient
-  >>> client = ReasonClient()
-  >>> artifact = client.resolve("reason://finance/fraud/anomaly-detection")
-  >>> features = [0.12, 0.95, 0.03, 0.41, 0.78, 0.56]   # your feature vector
-  >>> similarity = client.compare(features, artifact)
-  >>> similarity > artifact.thresholds.high_confidence    # True = flag it
-  True
+       Windows:   C:\\> py -3.8
+       Mac/Linux: $ python3
+
+  2. Import and connect
+
+       >>> from reason_py import ReasonClient
+       >>> client = ReasonClient()
+
+  3. Resolve an artifact
+
+       >>> artifact = client.resolve("reason://finance/fraud/anomaly-detection")
+       >>> print(artifact)
+       ReasonArtifact(uri='reason://finance/fraud/anomaly-detection', score=0.889, ...)
+
+  4. Compare your data
+
+       >>> features = [0.12, 0.95, 0.03, 0.41, 0.78, 0.56]   # your values here
+       >>> similarity = client.compare(features, artifact)
+       >>> print(round(similarity, 3))
+       0.822
+
+  5. Make a decision
+
+       >>> if similarity > artifact.thresholds.high_confidence:
+       ...     print("flag it")
+       flag it
 
 
 METHODS

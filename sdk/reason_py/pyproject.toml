@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reason-py"
-version = "0.1.5"
+version = "0.1.6"
 description = "Official Python client for reason:// — the reasoning infrastructure for the agentic internet"
 authors = [{ name = "Jacob Westerbeck", email = "jacob@pcfic.com" }]
 license = { text = "CC BY 4.0" }
