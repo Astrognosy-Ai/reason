@@ -1,6 +1,6 @@
 Internet-Draft                                              Astrognosy AI
-Intended status: Informational                        28 March 2026
-Expires: 28 September 2026
+Intended status: Informational                        30 March 2026
+Expires: 30 September 2026
 
          reason:// — A URI Scheme and Registry Protocol for
               Validated Agent Reasoning Artifacts
@@ -36,7 +36,7 @@ Status of This Memo
    at any time.  It is inappropriate to use Internet-Drafts as
    reference material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 28 September 2026.
+   This Internet-Draft will expire on 30 September 2026.
 
 Copyright Notice
 
@@ -134,18 +134,19 @@ Table of Contents
 
    reason:// is the topmost layer in a four-layer stack:
 
-       reason://   -- this specification: naming, gating, resolution
-       Xport       -- reference WARF node: arbitration + artifact store
-       WARF        -- open arbitration protocol: cargo packages, rules
-       PCF         -- convergence scoring mechanism: the math
+       reason://    -- this specification: naming, gating, resolution
+       Xport Node   -- reference WARF node implementation: arbitration
+                       and artifact store (see Section 2)
+       WARF         -- open arbitration protocol: cargo packages, rules
+       PCF          -- convergence scoring mechanism: the math
 
    reason:// does not specify a scoring mechanism (PCF's domain).
    It does not specify arbitration rules (WARF's domain).  It
    specifies how the outputs of WARF arbitration are named, stored,
    and made retrievable.
 
-   The reference implementation of a WARF node (Xport) is maintained
-   by Astrognosy AI.  The PCF scoring mechanism is patent-protected
+   The reference implementation of a WARF node (the Xport Node) is
+   maintained by Astrognosy AI.  The PCF scoring mechanism is patent-protected
    (U.S. Provisional 63/978,633 and related filings).  The reason://
    protocol specification itself is CC BY 4.0.
 
@@ -570,5 +571,4 @@ Authors' Addresses
 
    Jacob Westerbeck
    Astrognosy AI / Pacific Intelligence Concepts
-   Email: jacob@pcfic.com
-   URI:   https://reason.astrognosy.com
+   Email: jacob@pcfic.
