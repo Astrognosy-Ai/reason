@@ -21,7 +21,7 @@ from reason_py.models import (
     ArtifactMetadata,
 )
 
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 __all__ = [
     "ReasonClient",
     "ReasonArtifact",

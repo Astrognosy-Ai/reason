@@ -30,16 +30,15 @@ HELP = """
 
 INSTALL
 -------
-  Windows:   C:\\> pip install reason-py
-  Mac/Linux: $ pip install reason-py
+  pip install reason-py
 
 
 QUICK START
 -----------
   1. Open Python
 
-       Windows:   C:\\> py -3.8
-       Mac/Linux: $ python3
+       Windows:   py -3.8
+       Mac/Linux: python3
 
   2. Import and connect
 
