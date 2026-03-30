@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "reason-py"
@@ -29,9 +29,11 @@ Homepage = "https://github.com/Astrognosy-Ai/reason"
 Documentation = "https://github.com/Astrognosy-Ai/reason/blob/main/sdk/reason_py/README.md"
 "Bug Tracker" = "https://github.com/Astrognosy-Ai/reason/issues"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["reason_py*"]
+[tool.setuptools]
+packages = ["reason_py"]
+
+[tool.setuptools.package-dir]
+reason_py = "."
 
 [tool.pytest.ini_options]
 markers = [
