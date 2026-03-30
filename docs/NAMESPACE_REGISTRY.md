@@ -160,5 +160,4 @@ Registry last updated: 2026-03-26
 
 ---
 
-*Namespace registry operated by Astrognosy AI / Pacific Intelligence Concepts*
-*pcfic.com*
+*Namespace registry operated by Astrognosy AI — astrognosy.com*

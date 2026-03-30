@@ -157,4 +157,4 @@ Credit and provenance are tracked from day one — every artifact carries the de
 
 ---
 
-*Astrognosy AI / Pacific Intelligence Concepts — pcfic.com*
+*Astrognosy AI — astrognosy.com*

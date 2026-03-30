@@ -1,12 +1,11 @@
-```
 Internet-Draft                                              Astrognosy AI
-Intended status: Standards Track                        28 March 2026
+Intended status: Informational                        28 March 2026
 Expires: 28 September 2026
 
          reason:// — A URI Scheme and Registry Protocol for
               Validated Agent Reasoning Artifacts
 
-              draft-ietf-reason-reasoning-artifact-federation-00
+              draft-jwesterbeck-reason-reasoning-artifact-federation-00
 
 Abstract
 
@@ -196,7 +195,8 @@ Table of Contents
 
    PCF Score (S)
       The convergence score produced by the PCF mechanism for a
-      given submission.  Range: real-valued.  Higher is stronger.
+      given submission, normalized to [0,1] by share of total
+      arbitration mass.  Higher is stronger.
 
    Structural Centroid
       The mean vector of an agent's learned structural embeddings,
@@ -306,7 +306,7 @@ Table of Contents
 
    score (float, REQUIRED)
       The PCF convergence score earned in the admitting arbitration
-      round.  Immutable after deposit.  Range: real-valued.
+      round.  Immutable after deposit.  Range: [0,1].
 
    provenance (object, REQUIRED)
       Immutable audit record.  agent_id identifies the depositing
@@ -571,5 +571,4 @@ Authors' Addresses
    Jacob Westerbeck
    Astrognosy AI / Pacific Intelligence Concepts
    Email: jacob@pcfic.com
-   URI:   https://pcfic.com
-```
+   URI:   https://reason.astrognosy.com

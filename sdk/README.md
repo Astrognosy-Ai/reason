@@ -203,4 +203,4 @@ See the [examples/](../examples/) directory:
 ---
 
 *reason_py is part of the reason:// protocol — CC BY 4.0*
-*Astrognosy AI / Pacific Intelligence Concepts — pcfic.com*
+*Astrognosy AI — astrognosy.com*

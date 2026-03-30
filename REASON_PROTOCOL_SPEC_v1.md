@@ -409,5 +409,5 @@ Control of the namespace registry is a structural position in the agentic intern
 
 ---
 
-*Astrognosy AI / Pacific Intelligence Concepts — pcfic.com*
+*Astrognosy AI — astrognosy.com*
 *Specification license: CC BY 4.0*

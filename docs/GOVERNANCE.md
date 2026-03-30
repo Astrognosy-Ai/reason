@@ -12,7 +12,7 @@
 - Registry operator: Astrognosy AI (explicitly stated in patent and spec).
 - Namespace minting: First-come, first-served via `reason.register()`.
 - Collision arbitration: Handled by WARF scoring node itself.
-- Public audit log: All deposits and scores published on-chain (or immutable ledger).
+- Public audit log: All deposits, arbitration events, and scores are publicly accessible via SHA-256 chained audit records on the Xport node.
 
 ## Phase 2 — Transition (Q4 2026)
 - IETF Working Group formed (draft already in progress).

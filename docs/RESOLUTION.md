@@ -143,9 +143,10 @@ The RDN cache TTL is set by the Xport node operator. For Xport Node 0 (Astrognos
 
 When a new arbitration event produces a higher-scoring artifact under a URI, the node clears the cache for that URI and re-populates on the next resolution request.
 
-Consumers who need guaranteed freshness (i.e., always want the current leader, even if it changed in the last 24 hours) can pass a cache bypass header:
+Consumers who need guaranteed freshness (i.e., always want the current leader, even if it changed in the last 24 hours) can pass a cache bypass parameter (planned for v0.2):
 
 ```python
+# Planned — v0.2
 artifact = client.resolve(
     "reason://finance/fraud/anomaly-detection",
     bypass_cache=True
@@ -161,11 +162,14 @@ Cache bypass increases latency (requires a store lookup rather than cache hit) a
 The `audit_hash` in every artifact's provenance is the SHA-256 hash of the arbitration event record that produced the artifact. To verify:
 
 ```python
-# Get the raw audit record from the Xport node
-record = client.get_audit_record(artifact.provenance.arbitration_event_id)
+# Retrieve the audit record directly from the Xport node
+import httpx, hashlib
+
+event_id = artifact.provenance.arbitration_event_id
+resp = httpx.get(f"https://xport.astrognosy.com/audit/{event_id}")
+record = resp.text
 
 # Verify the hash
-import hashlib
 computed = hashlib.sha256(record.encode()).hexdigest()
 assert computed == artifact.provenance.audit_hash.replace("sha256:", "")
 ```

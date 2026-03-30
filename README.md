@@ -150,5 +150,4 @@ This repo is the open protocol. The **Pacific platform** (pcfic.com) provides se
 
 ---
 
-Built by Jacob Westerbeck — [Astrognosy AI](https://astrognosy.com) / Pacific Intelligence Concepts
-[jacob@pcfic.com](mailto:jacob@pcfic.com) · [pcfic.com](https://pcfic.com)
+Built by Jacob Westerbeck — [Astrognosy AI](https://astrognosy.com) · [jacob@pcfic.com](mailto:jacob@pcfic.com)
