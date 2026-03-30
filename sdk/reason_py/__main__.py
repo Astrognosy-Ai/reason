@@ -10,19 +10,16 @@ from reason_py import __version__
 
 
 LOGO = r"""
-           .---------.
-         /             \
-        /  r e a s o n  \
-       |      : / /       |
-       |                  |
-       |   - - - - - - -  |
-       |   - - - - - - -  |
-        \   -----------   /
-         '---------------'
-               | | |
-            ___| | |___
-           |___________|
-           |___________|
+
+                                                                                    d8    d8
+                                                                                  ,8P'  ,8P'
+                                                                                 d8"   d8"
+8b,dPPYba,   ,adPPYba,  ,adPPYYba,  ,adPPYba,   ,adPPYba,   8b,dPPYba,   888       ,8P'  ,8P'
+88P'   "Y8  a8P_____88  ""     `Y8  I8[    ""  a8"     "8a  88P'   `"8a  888      d8"   d8"
+88          8PP"""""""  ,adPPPPP88   `"Y8ba,   8b       d8  88       88         ,8P'  ,8P'
+88          "8b,   ,aa  88,    ,88  aa    ]8I  "8a,   ,a8"  88       88  888   d8"   d8"
+88           `"Ybbd8"'  `"8bbdP"Y8  `"YbbdP"'   `"YbbdP"'   88       88  888  8P'   8P'
+
 """
 
 HELP = """
