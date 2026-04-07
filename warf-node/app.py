@@ -10,6 +10,7 @@ Endpoints:
   GET  /resolve?address=reason://  — resolve a reason:// URI to its artifact
   GET  /artifacts                  — list all registered artifacts
   GET  /audit/{artifact_id}        — SHA-256 audit record for an artifact
+  GET  /stats                      — resolve counts + top artifacts by score and usage
   POST /register                   — submit an artifact for WARF arbitration
                                      (deposits on win, rejects on loss)
   POST /promote                    — deposit a pre-scored artifact from Xtend
@@ -190,8 +191,14 @@ def init_db() -> None:
                 agent_id        TEXT NOT NULL,
                 deposited_at    TEXT NOT NULL,
                 audit_hash      TEXT NOT NULL,
-                metadata_json   TEXT NOT NULL DEFAULT '{}'
+                metadata_json   TEXT NOT NULL DEFAULT '{}',
+                resolve_count   INTEGER NOT NULL DEFAULT 0
             )
+        """)
+        # Migration: add resolve_count to existing tables that predate this column
+        cur.execute("""
+            ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS
+                resolve_count INTEGER NOT NULL DEFAULT 0
         """)
         conn.commit()
         cur.close()
@@ -211,12 +218,19 @@ def init_db() -> None:
                 agent_id        TEXT NOT NULL,
                 deposited_at    TEXT NOT NULL,
                 audit_hash      TEXT NOT NULL,
-                metadata_json   TEXT NOT NULL DEFAULT '{}'
+                metadata_json   TEXT NOT NULL DEFAULT '{}',
+                resolve_count   INTEGER NOT NULL DEFAULT 0
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS idx_artifacts_address
                 ON artifacts(address);
         """)
+        # Migration: add resolve_count if upgrading from a pre-existing SQLite DB
+        try:
+            conn.execute("ALTER TABLE artifacts ADD COLUMN resolve_count INTEGER NOT NULL DEFAULT 0")
+            conn.commit()
+        except Exception:
+            pass  # column already exists — ignore
         conn.commit()
         conn.close()
 
@@ -284,6 +298,7 @@ def _to_reason_artifact_dict(row) -> Dict[str, Any]:
         "pattern": json.loads(row["pattern_json"]),
         "thresholds": json.loads(row["thresholds_json"]),
         "score": row["score"],
+        "resolve_count": row["resolve_count"] if "resolve_count" in row.keys() else 0,
         "provenance": {
             "agent_id": row["agent_id"],
             "deposited_at": row["deposited_at"],
@@ -428,14 +443,22 @@ def resolve(address: str = Query(..., description="reason:// URI")) -> Dict[str,
         f"SELECT * FROM artifacts WHERE address = {_ph()}",
         (address,),
     ).fetchone()
-    db.close()
 
     if row is None:
+        db.close()
         raise HTTPException(
             status_code=404,
             detail=f"No artifact registered at {address!r}. "
                    "Submit via POST /register to initiate arbitration.",
         )
+
+    _exec(
+        db,
+        f"UPDATE artifacts SET resolve_count = resolve_count + 1 WHERE address = {_ph()}",
+        (address,),
+    )
+    db.commit()
+    db.close()
 
     return _to_reason_artifact_dict(row)
 
@@ -501,6 +524,60 @@ def get_audit(artifact_id: str) -> Dict[str, Any]:
             f"sha256({row['artifact_id']}|{row['address']}|"
             f"{row['score']:.6f}|{row['agent_id']}|{row['deposited_at']})"
         ),
+    }
+
+
+@app.get("/stats")
+def stats() -> Dict[str, Any]:
+    """
+    Resolve usage statistics for this Xport node.
+
+    Returns:
+        - total_artifacts: number of registered artifacts
+        - total_resolves:  cumulative resolve count across all artifacts
+        - top_by_score:    top 5 artifacts by PCF score (highest quality)
+        - top_by_resolves: top 5 artifacts by resolve_count (most used)
+    """
+    db = get_db()
+    p = _ph()
+
+    totals_row = _exec(
+        db,
+        "SELECT COUNT(*) AS cnt, COALESCE(SUM(resolve_count), 0) AS total_resolves FROM artifacts",
+    ).fetchone()
+    total_artifacts = totals_row["cnt"]
+    total_resolves = totals_row["total_resolves"]
+
+    top_score_rows = _exec(
+        db,
+        f"SELECT address, score, agent_id, resolve_count FROM artifacts ORDER BY score DESC LIMIT {p}",
+        (5,),
+    ).fetchall()
+
+    top_resolve_rows = _exec(
+        db,
+        f"SELECT address, score, agent_id, resolve_count FROM artifacts ORDER BY resolve_count DESC LIMIT {p}",
+        (5,),
+    ).fetchall()
+
+    db.close()
+
+    def _fmt(rows):
+        return [
+            {
+                "address": r["address"],
+                "score": r["score"],
+                "agent_id": r["agent_id"],
+                "resolve_count": r["resolve_count"],
+            }
+            for r in rows
+        ]
+
+    return {
+        "total_artifacts": total_artifacts,
+        "total_resolves": int(total_resolves),
+        "top_by_score": _fmt(top_score_rows),
+        "top_by_resolves": _fmt(top_resolve_rows),
     }
 
 
