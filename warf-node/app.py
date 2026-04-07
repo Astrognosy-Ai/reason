@@ -138,6 +138,17 @@ class RegisterRequest(BaseModel):
     metadata: Dict[str, Any] = {}       # public, non-sensitive only
 
 
+class PromoteRequest(BaseModel):
+    address: str                        # reason://domain/category/task
+    flow_type: str                      # "Xfer", "Xact", or "Xchange"
+    payload: Dict[str, Any]             # winning artifact payload
+    pcf_score: float                    # pre-computed score from Xtend
+    balmathic_kappa: float              # κ exponent from Xtend
+    agent_id: str                       # winning agent identifier
+    audit_hash: str                     # audit hash from Xtend scoring
+    metadata: Dict[str, Any] = {}
+
+
 class ArtifactOut(BaseModel):
     artifact_id: str
     address: str
@@ -524,6 +535,78 @@ def register(req: RegisterRequest, _: None = Depends(require_api_key)) -> Dict[s
         "artifact_id": artifact_id,
         "address": req.address,
         "score": pcf_score,
+        "deposited_at": deposited_at,
+        "audit_hash": audit_hash,
+    }
+
+
+@app.post("/promote", status_code=201)
+def promote(req: PromoteRequest, _: None = Depends(require_api_key)) -> Dict[str, Any]:
+    """
+    Deposit a pre-scored artifact directly from Xtend (Verdict Inspector + VASE).
+
+    Called exclusively by the Xtend layer after Balmathic κ promotion decision.
+    Skips WARF arbitration — scoring already happened upstream. Deposits the
+    winning artifact directly into the reason:// registry.
+    """
+    _validate_uri(req.address)
+
+    uri_match = REASON_URI_PATTERN.match(req.address)
+    domain = uri_match.group(1)
+    category = uri_match.group(2)
+    task = uri_match.group(3)
+
+    artifact_id = uuid.uuid4().hex
+    deposited_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    # Re-derive audit hash chaining Xtend's hash into this deposit record
+    audit_payload = f"{artifact_id}|{req.address}|{req.pcf_score:.6f}|{req.agent_id}|{deposited_at}|{req.audit_hash}"
+    audit_hash = hashlib.sha256(audit_payload.encode()).hexdigest()
+
+    metadata = {
+        **req.metadata,
+        "flow_type": req.flow_type,
+        "balmathic_kappa": req.balmathic_kappa,
+        "xtend_audit_hash": req.audit_hash,
+    }
+
+    db = get_db()
+    # Use INSERT OR REPLACE so a higher-κ artifact can displace an incumbent
+    db.execute(
+        """
+        INSERT OR REPLACE INTO artifacts
+            (artifact_id, address, domain, category, task,
+             pattern_json, thresholds_json, score, n_examples,
+             agent_id, deposited_at, audit_hash, metadata_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            artifact_id,
+            req.address,
+            domain,
+            category,
+            task,
+            json.dumps(req.payload.get("pattern", [])),
+            json.dumps(req.payload.get("thresholds", {})),
+            req.pcf_score,
+            req.payload.get("n_examples", 0),
+            req.agent_id,
+            deposited_at,
+            audit_hash,
+            json.dumps(metadata),
+        ),
+    )
+    db.commit()
+    db.close()
+
+    return {
+        "status": "promoted",
+        "artifact_id": artifact_id,
+        "address": req.address,
+        "reason_dot_uri": req.address,
+        "pcf_score": req.pcf_score,
+        "balmathic_kappa": req.balmathic_kappa,
+        "flow_type": req.flow_type,
         "deposited_at": deposited_at,
         "audit_hash": audit_hash,
     }
