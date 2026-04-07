@@ -12,17 +12,21 @@ Endpoints:
   GET  /audit/{artifact_id}        — SHA-256 audit record for an artifact
   POST /register                   — submit an artifact for WARF arbitration
                                      (deposits on win, rejects on loss)
+  POST /promote                    — deposit a pre-scored artifact from Xtend
+                                     (skips arbitration, scoring done upstream)
 
 Usage:
   uvicorn app:app --host 0.0.0.0 --port 8080
 
 Environment:
+  DATABASE_URL      — Postgres connection string (preferred).
+                      If set, uses Postgres. If unset, falls back to SQLite (dev only).
   WARF_BROKER_URL   — WARF broker endpoint for arbitration scoring
                       (default: https://warf-broker.up.railway.app)
-  NODE_DB           — path to SQLite database (default: registry.db)
+  NODE_DB           — path to SQLite database when DATABASE_URL is unset (default: registry.db)
   NODE_ID           — identifier for this node (default: reason-ref-node-0)
-  XPORT_API_KEY     — secret key required in X-API-Key header for POST /register
-                      (leave unset to disable auth in local dev; always set in prod)
+  XPORT_API_KEY     — secret key required in X-API-Key header for write endpoints.
+                      Leave unset to disable auth in local dev; always set in prod.
 """
 from __future__ import annotations
 
@@ -44,6 +48,7 @@ from pydantic import BaseModel
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 WARF_BROKER_URL = os.environ.get(
     "WARF_BROKER_URL", "https://warf-broker.up.railway.app"
 ).rstrip("/")
@@ -51,7 +56,7 @@ DB_PATH = os.environ.get("NODE_DB", "registry.db")
 NODE_ID = os.environ.get("NODE_ID", "reason-ref-node-0")
 
 # API key for write endpoints — set XPORT_API_KEY env var to enable auth.
-# If unset, /register is open (useful for local dev only — always set in prod).
+# If unset, /register and /promote are open (dev/local only — always set in prod).
 XPORT_API_KEY = os.environ.get("XPORT_API_KEY", "")
 
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -63,6 +68,7 @@ def require_api_key(key: str = Security(_api_key_header)) -> None:
         return  # auth disabled — dev/local mode
     if key != XPORT_API_KEY:
         raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key header.")
+
 
 REASON_URI_PATTERN = re.compile(
     r"^reason://([a-z][a-z0-9\-]*)/([a-z][a-z0-9\-]*)/([a-z][a-z0-9\-]*)$"
@@ -77,7 +83,7 @@ app = FastAPI(
         "Artifacts enter only by winning WARF arbitration. "
         "Resolution is one line. No raw data ever stored."
     ),
-    version="0.1.1",
+    version="0.2.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -94,36 +100,125 @@ _start_time = time.time()
 
 # ─── Database ─────────────────────────────────────────────────────────────────
 
-def get_db() -> sqlite3.Connection:
+def _is_postgres() -> bool:
+    return DATABASE_URL.startswith("postgres")
+
+
+def _ph() -> str:
+    """Return the correct SQL placeholder for the active backend."""
+    return "%s" if _is_postgres() else "?"
+
+
+def get_db():
+    """Return an open database connection for the active backend."""
+    if _is_postgres():
+        import psycopg2
+        conn = psycopg2.connect(DATABASE_URL)
+        conn.autocommit = False
+        return conn
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
 
+def _exec(conn, sql: str, params=()):
+    """Execute SQL on either backend, returning a cursor with dict-style row access."""
+    if _is_postgres():
+        import psycopg2.extras
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(sql, params)
+        return cur
+    return conn.execute(sql, params)
+
+
+def _upsert_artifact_sql() -> str:
+    """
+    Return the correct INSERT-or-replace SQL for the active backend.
+
+    Postgres uses INSERT ... ON CONFLICT (address) DO UPDATE SET ...
+    SQLite uses INSERT OR REPLACE INTO ...
+
+    The column list and parameter tuple are identical for both — 13 values in order:
+    artifact_id, address, domain, category, task, pattern_json, thresholds_json,
+    score, n_examples, agent_id, deposited_at, audit_hash, metadata_json
+    """
+    p = _ph()
+    cols = (
+        "artifact_id, address, domain, category, task, "
+        "pattern_json, thresholds_json, score, n_examples, "
+        "agent_id, deposited_at, audit_hash, metadata_json"
+    )
+    vals = ", ".join([p] * 13)
+
+    if _is_postgres():
+        return f"""
+            INSERT INTO artifacts ({cols})
+            VALUES ({vals})
+            ON CONFLICT (address) DO UPDATE SET
+                artifact_id     = EXCLUDED.artifact_id,
+                domain          = EXCLUDED.domain,
+                category        = EXCLUDED.category,
+                task            = EXCLUDED.task,
+                pattern_json    = EXCLUDED.pattern_json,
+                thresholds_json = EXCLUDED.thresholds_json,
+                score           = EXCLUDED.score,
+                n_examples      = EXCLUDED.n_examples,
+                agent_id        = EXCLUDED.agent_id,
+                deposited_at    = EXCLUDED.deposited_at,
+                audit_hash      = EXCLUDED.audit_hash,
+                metadata_json   = EXCLUDED.metadata_json
+        """
+    return f"INSERT OR REPLACE INTO artifacts ({cols}) VALUES ({vals})"
+
+
 def init_db() -> None:
     conn = get_db()
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS artifacts (
-            artifact_id   TEXT PRIMARY KEY,
-            address       TEXT NOT NULL UNIQUE,
-            domain        TEXT NOT NULL,
-            category      TEXT NOT NULL,
-            task          TEXT NOT NULL,
-            pattern_json  TEXT NOT NULL,
-            thresholds_json TEXT NOT NULL,
-            score         REAL NOT NULL,
-            n_examples    INTEGER NOT NULL,
-            agent_id      TEXT NOT NULL,
-            deposited_at  TEXT NOT NULL,
-            audit_hash    TEXT NOT NULL,
-            metadata_json TEXT NOT NULL DEFAULT '{}'
-        );
 
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_artifacts_address
-            ON artifacts(address);
-    """)
-    conn.commit()
-    conn.close()
+    if _is_postgres():
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS artifacts (
+                artifact_id     TEXT PRIMARY KEY,
+                address         TEXT NOT NULL UNIQUE,
+                domain          TEXT NOT NULL,
+                category        TEXT NOT NULL,
+                task            TEXT NOT NULL,
+                pattern_json    TEXT NOT NULL,
+                thresholds_json TEXT NOT NULL,
+                score           REAL NOT NULL,
+                n_examples      INTEGER NOT NULL,
+                agent_id        TEXT NOT NULL,
+                deposited_at    TEXT NOT NULL,
+                audit_hash      TEXT NOT NULL,
+                metadata_json   TEXT NOT NULL DEFAULT '{}'
+            )
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+    else:
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS artifacts (
+                artifact_id     TEXT PRIMARY KEY,
+                address         TEXT NOT NULL UNIQUE,
+                domain          TEXT NOT NULL,
+                category        TEXT NOT NULL,
+                task            TEXT NOT NULL,
+                pattern_json    TEXT NOT NULL,
+                thresholds_json TEXT NOT NULL,
+                score           REAL NOT NULL,
+                n_examples      INTEGER NOT NULL,
+                agent_id        TEXT NOT NULL,
+                deposited_at    TEXT NOT NULL,
+                audit_hash      TEXT NOT NULL,
+                metadata_json   TEXT NOT NULL DEFAULT '{}'
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_artifacts_address
+                ON artifacts(address);
+        """)
+        conn.commit()
+        conn.close()
 
 
 # ─── Models ───────────────────────────────────────────────────────────────────
@@ -182,7 +277,7 @@ def _compute_audit_hash(artifact_id: str, address: str, score: float,
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
-def _to_reason_artifact_dict(row: sqlite3.Row) -> Dict[str, Any]:
+def _to_reason_artifact_dict(row) -> Dict[str, Any]:
     """Serialize a DB row to the ReasonArtifact wire format expected by the SDK."""
     return {
         "uri": row["address"],
@@ -277,7 +372,7 @@ def _call_warf_broker(address: str, pattern: List[float],
         )
 
 
-def _row_to_artifact(row: sqlite3.Row) -> ArtifactOut:
+def _row_to_artifact(row) -> ArtifactOut:
     return ArtifactOut(
         artifact_id=row["artifact_id"],
         address=row["address"],
@@ -304,7 +399,8 @@ def startup() -> None:
 @app.get("/health")
 def health() -> Dict[str, Any]:
     db = get_db()
-    count = db.execute("SELECT COUNT(*) FROM artifacts").fetchone()[0]
+    row = _exec(db, "SELECT COUNT(*) AS cnt FROM artifacts").fetchone()
+    count = row["cnt"]
     db.close()
     return {
         "status": "ok",
@@ -312,6 +408,7 @@ def health() -> Dict[str, Any]:
         "uptime_seconds": round(time.time() - _start_time, 1),
         "artifact_count": count,
         "warf_broker": WARF_BROKER_URL,
+        "backend": "postgres" if _is_postgres() else "sqlite",
         "protocol": "reason:// v0.1",
     }
 
@@ -326,8 +423,10 @@ def resolve(address: str = Query(..., description="reason:// URI")) -> Dict[str,
     """
     _validate_uri(address)
     db = get_db()
-    row = db.execute(
-        "SELECT * FROM artifacts WHERE address = ?", (address,)
+    row = _exec(
+        db,
+        f"SELECT * FROM artifacts WHERE address = {_ph()}",
+        (address,),
     ).fetchone()
     db.close()
 
@@ -349,20 +448,24 @@ def list_artifacts(
     offset: int = Query(0, ge=0),
 ) -> List[Dict[str, Any]]:
     """List registered artifacts, optionally filtered by domain or exact address."""
+    p = _ph()
     db = get_db()
     if address:
-        rows = db.execute(
-            "SELECT * FROM artifacts WHERE address = ? ORDER BY deposited_at DESC LIMIT ? OFFSET ?",
+        rows = _exec(
+            db,
+            f"SELECT * FROM artifacts WHERE address = {p} ORDER BY deposited_at DESC LIMIT {p} OFFSET {p}",
             (address, limit, offset),
         ).fetchall()
     elif domain:
-        rows = db.execute(
-            "SELECT * FROM artifacts WHERE domain = ? ORDER BY deposited_at DESC LIMIT ? OFFSET ?",
+        rows = _exec(
+            db,
+            f"SELECT * FROM artifacts WHERE domain = {p} ORDER BY deposited_at DESC LIMIT {p} OFFSET {p}",
             (domain, limit, offset),
         ).fetchall()
     else:
-        rows = db.execute(
-            "SELECT * FROM artifacts ORDER BY deposited_at DESC LIMIT ? OFFSET ?",
+        rows = _exec(
+            db,
+            f"SELECT * FROM artifacts ORDER BY deposited_at DESC LIMIT {p} OFFSET {p}",
             (limit, offset),
         ).fetchall()
     db.close()
@@ -376,9 +479,10 @@ def get_audit(artifact_id: str) -> Dict[str, Any]:
     Audit hashes are chained — verifiable without trusting this node.
     """
     db = get_db()
-    row = db.execute(
-        "SELECT artifact_id, address, score, agent_id, deposited_at, audit_hash "
-        "FROM artifacts WHERE artifact_id = ?",
+    row = _exec(
+        db,
+        f"""SELECT artifact_id, address, score, agent_id, deposited_at, audit_hash
+            FROM artifacts WHERE artifact_id = {_ph()}""",
         (artifact_id,),
     ).fetchone()
     db.close()
@@ -427,10 +531,12 @@ def register(req: RegisterRequest, _: None = Depends(require_api_key)) -> Dict[s
             detail=f"thresholds must include: {sorted(required_threshold_keys)}",
         )
 
-    # Check if this address already has a higher-scoring artifact
+    # Check if this address already has a high-confidence artifact
     db = get_db()
-    existing = db.execute(
-        "SELECT score FROM artifacts WHERE address = ?", (req.address,)
+    existing = _exec(
+        db,
+        f"SELECT score FROM artifacts WHERE address = {_ph()}",
+        (req.address,),
     ).fetchone()
     db.close()
 
@@ -464,7 +570,7 @@ def register(req: RegisterRequest, _: None = Depends(require_api_key)) -> Dict[s
             "address": req.address,
         }
 
-    # Submitter must beat the null baseline — score alone isn't enough
+    # Submitter must beat the null baseline
     winning_agent = broker_result.get("winning_agent", "__null_baseline__")
     if winning_agent != req.agent_id:
         return {
@@ -503,14 +609,9 @@ def register(req: RegisterRequest, _: None = Depends(require_api_key)) -> Dict[s
     task = req.metadata.get("task", uri_match.group(3))
 
     db = get_db()
-    db.execute(
-        """
-        INSERT OR REPLACE INTO artifacts
-            (artifact_id, address, domain, category, task,
-             pattern_json, thresholds_json, score, n_examples,
-             agent_id, deposited_at, audit_hash, metadata_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
+    _exec(
+        db,
+        _upsert_artifact_sql(),
         (
             artifact_id,
             req.address,
@@ -571,15 +672,9 @@ def promote(req: PromoteRequest, _: None = Depends(require_api_key)) -> Dict[str
     }
 
     db = get_db()
-    # Use INSERT OR REPLACE so a higher-κ artifact can displace an incumbent
-    db.execute(
-        """
-        INSERT OR REPLACE INTO artifacts
-            (artifact_id, address, domain, category, task,
-             pattern_json, thresholds_json, score, n_examples,
-             agent_id, deposited_at, audit_hash, metadata_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
+    _exec(
+        db,
+        _upsert_artifact_sql(),
         (
             artifact_id,
             req.address,
