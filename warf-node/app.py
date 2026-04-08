@@ -153,7 +153,7 @@ def _upsert_artifact_sql() -> str:
 
     if _is_postgres():
         return f"""
-            INSERT INTO artifacts ({cols})
+            INSERT INTO xport_artifacts ({cols})
             VALUES ({vals})
             ON CONFLICT (address) DO UPDATE SET
                 artifact_id     = EXCLUDED.artifact_id,
@@ -169,7 +169,7 @@ def _upsert_artifact_sql() -> str:
                 audit_hash      = EXCLUDED.audit_hash,
                 metadata_json   = EXCLUDED.metadata_json
         """
-    return f"INSERT OR REPLACE INTO artifacts ({cols}) VALUES ({vals})"
+    return f"INSERT OR REPLACE INTO xport_artifacts ({cols}) VALUES ({vals})"
 
 
 def init_db() -> None:
@@ -178,7 +178,7 @@ def init_db() -> None:
     if _is_postgres():
         cur = conn.cursor()
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS artifacts (
+            CREATE TABLE IF NOT EXISTS xport_artifacts (
                 artifact_id     TEXT PRIMARY KEY,
                 address         TEXT NOT NULL UNIQUE,
                 domain          TEXT NOT NULL,
@@ -197,7 +197,7 @@ def init_db() -> None:
         """)
         # Migration: add resolve_count to existing tables that predate this column
         cur.execute("""
-            ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS
+            ALTER TABLE xport_artifacts ADD COLUMN IF NOT EXISTS
                 resolve_count INTEGER NOT NULL DEFAULT 0
         """)
         conn.commit()
@@ -205,7 +205,7 @@ def init_db() -> None:
         conn.close()
     else:
         conn.executescript("""
-            CREATE TABLE IF NOT EXISTS artifacts (
+            CREATE TABLE IF NOT EXISTS xport_artifacts (
                 artifact_id     TEXT PRIMARY KEY,
                 address         TEXT NOT NULL UNIQUE,
                 domain          TEXT NOT NULL,
@@ -222,12 +222,12 @@ def init_db() -> None:
                 resolve_count   INTEGER NOT NULL DEFAULT 0
             );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_artifacts_address
-                ON artifacts(address);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_xport_artifacts_address
+                ON xport_artifacts(address);
         """)
         # Migration: add resolve_count if upgrading from a pre-existing SQLite DB
         try:
-            conn.execute("ALTER TABLE artifacts ADD COLUMN resolve_count INTEGER NOT NULL DEFAULT 0")
+            conn.execute("ALTER TABLE xport_artifacts ADD COLUMN resolve_count INTEGER NOT NULL DEFAULT 0")
             conn.commit()
         except Exception:
             pass  # column already exists — ignore
@@ -414,7 +414,7 @@ def startup() -> None:
 @app.get("/health")
 def health() -> Dict[str, Any]:
     db = get_db()
-    row = _exec(db, "SELECT COUNT(*) AS cnt FROM artifacts").fetchone()
+    row = _exec(db, "SELECT COUNT(*) AS cnt FROM xport_artifacts").fetchone()
     count = row["cnt"]
     db.close()
     return {
@@ -440,7 +440,7 @@ def resolve(address: str = Query(..., description="reason:// URI")) -> Dict[str,
     db = get_db()
     row = _exec(
         db,
-        f"SELECT * FROM artifacts WHERE address = {_ph()}",
+        f"SELECT * FROM xport_artifacts WHERE address = {_ph()}",
         (address,),
     ).fetchone()
 
@@ -454,7 +454,7 @@ def resolve(address: str = Query(..., description="reason:// URI")) -> Dict[str,
 
     _exec(
         db,
-        f"UPDATE artifacts SET resolve_count = resolve_count + 1 WHERE address = {_ph()}",
+        f"UPDATE xport_artifacts SET resolve_count = resolve_count + 1 WHERE address = {_ph()}",
         (address,),
     )
     db.commit()
@@ -476,19 +476,19 @@ def list_artifacts(
     if address:
         rows = _exec(
             db,
-            f"SELECT * FROM artifacts WHERE address = {p} ORDER BY deposited_at DESC LIMIT {p} OFFSET {p}",
+            f"SELECT * FROM xport_artifacts WHERE address = {p} ORDER BY deposited_at DESC LIMIT {p} OFFSET {p}",
             (address, limit, offset),
         ).fetchall()
     elif domain:
         rows = _exec(
             db,
-            f"SELECT * FROM artifacts WHERE domain = {p} ORDER BY deposited_at DESC LIMIT {p} OFFSET {p}",
+            f"SELECT * FROM xport_artifacts WHERE domain = {p} ORDER BY deposited_at DESC LIMIT {p} OFFSET {p}",
             (domain, limit, offset),
         ).fetchall()
     else:
         rows = _exec(
             db,
-            f"SELECT * FROM artifacts ORDER BY deposited_at DESC LIMIT {p} OFFSET {p}",
+            f"SELECT * FROM xport_artifacts ORDER BY deposited_at DESC LIMIT {p} OFFSET {p}",
             (limit, offset),
         ).fetchall()
     db.close()
@@ -505,7 +505,7 @@ def get_audit(artifact_id: str) -> Dict[str, Any]:
     row = _exec(
         db,
         f"""SELECT artifact_id, address, score, agent_id, deposited_at, audit_hash
-            FROM artifacts WHERE artifact_id = {_ph()}""",
+            FROM xport_artifacts WHERE artifact_id = {_ph()}""",
         (artifact_id,),
     ).fetchone()
     db.close()
@@ -543,20 +543,20 @@ def stats() -> Dict[str, Any]:
 
     totals_row = _exec(
         db,
-        "SELECT COUNT(*) AS cnt, COALESCE(SUM(resolve_count), 0) AS total_resolves FROM artifacts",
+        "SELECT COUNT(*) AS cnt, COALESCE(SUM(resolve_count), 0) AS total_resolves FROM xport_artifacts",
     ).fetchone()
     total_artifacts = totals_row["cnt"]
     total_resolves = totals_row["total_resolves"]
 
     top_score_rows = _exec(
         db,
-        f"SELECT address, score, agent_id, resolve_count FROM artifacts ORDER BY score DESC LIMIT {p}",
+        f"SELECT address, score, agent_id, resolve_count FROM xport_artifacts ORDER BY score DESC LIMIT {p}",
         (5,),
     ).fetchall()
 
     top_resolve_rows = _exec(
         db,
-        f"SELECT address, score, agent_id, resolve_count FROM artifacts ORDER BY resolve_count DESC LIMIT {p}",
+        f"SELECT address, score, agent_id, resolve_count FROM xport_artifacts ORDER BY resolve_count DESC LIMIT {p}",
         (5,),
     ).fetchall()
 
@@ -612,7 +612,7 @@ def register(req: RegisterRequest, _: None = Depends(require_api_key)) -> Dict[s
     db = get_db()
     existing = _exec(
         db,
-        f"SELECT score FROM artifacts WHERE address = {_ph()}",
+        f"SELECT score FROM xport_artifacts WHERE address = {_ph()}",
         (req.address,),
     ).fetchone()
     db.close()
