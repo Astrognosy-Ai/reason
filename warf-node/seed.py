@@ -5,8 +5,8 @@ Submits the 3 bootstrap artifacts to a live Xport node via POST /register.
 Each artifact goes through WARF broker arbitration — no direct DB insert.
 
 Usage:
-    python seed.py --endpoint https://xport.astrognosy.com --api-key <XPORT_API_KEY>
-    python seed.py --endpoint https://xport.astrognosy.com --api-key <key> --dry-run
+    python seed.py --endpoint https://reason.astrognosy.com --api-key <XPORT_API_KEY>
+    python seed.py --endpoint https://reason.astrognosy.com --api-key <key> --dry-run
 
 --dry-run: Test broker scoring on the first artifact only. Use this to verify
            synthetic centroids score >= 0.5 before committing all three.

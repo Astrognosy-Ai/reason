@@ -166,7 +166,7 @@ The `audit_hash` in every artifact's provenance is the SHA-256 hash of the arbit
 import httpx, hashlib
 
 event_id = artifact.provenance.arbitration_event_id
-resp = httpx.get(f"https://xport.astrognosy.com/audit/{event_id}")
+resp = httpx.get(f"https://reason.astrognosy.com/audit/{event_id}")
 record = resp.text
 
 # Verify the hash

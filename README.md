@@ -130,7 +130,7 @@ Internet-Draft in progress: [`docs/ietf/draft-00.md`](docs/ietf/draft-00.md)
 
 `draft-jwesterbeck-reason-reasoning-artifact-federation-00`
 
-The arbitration layer is defined in a separate draft: `draft-astrognosy-warf-00` — [WARF Protocol repo](https://github.com/Astrognosy-Ai/warf-protocol)
+The arbitration layer is defined in a separate draft: `draft-westerbeck-warf-protocol-00` — [WARF Protocol repo](https://github.com/Astrognosy-Ai/warf-protocol)
 
 ---
 

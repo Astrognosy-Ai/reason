@@ -25,8 +25,8 @@ pip install -e .
 ```python
 from reason_py import ReasonClient
 
-# Connect to the reference Xport node
-client = ReasonClient(endpoint="https://xport.astrognosy.com")
+# Connect to the reference reason:// registry endpoint
+client = ReasonClient(endpoint="https://reason.astrognosy.com")
 
 # Resolve a named reasoning artifact
 artifact = client.resolve("reason://finance/fraud/anomaly-detection")
@@ -54,7 +54,7 @@ for transaction in my_transactions:
 
 ```python
 client = ReasonClient(
-    endpoint="https://xport.astrognosy.com",  # Xport node URL
+    endpoint="https://reason.astrognosy.com",  # reason:// registry endpoint
     timeout=30,                               # request timeout in seconds
     api_key=None,                             # optional API key
 )

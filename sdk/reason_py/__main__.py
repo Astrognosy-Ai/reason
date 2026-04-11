@@ -105,7 +105,7 @@ LIVE URIS
   reason://cybersecurity/network/port-scan-classification
   reason://medicine/records/longitudinal-maintenance-prediction
 
-  Live node: https://xport.astrognosy.com
+  Live node: https://reason.astrognosy.com
 
 
 LINKS

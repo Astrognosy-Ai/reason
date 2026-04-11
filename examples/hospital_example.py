@@ -161,7 +161,7 @@ def hospital_b_side(use_live_node: bool = False):
 
     if use_live_node:
         # Live resolution via the reason:// SDK
-        client = ReasonClient(endpoint="https://xport.astrognosy.com")
+        client = ReasonClient(endpoint="https://reason.astrognosy.com")
         print("\n[1] Connecting to Xport node...")
 
         try:
@@ -256,7 +256,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--live",
         action="store_true",
-        help="Connect to a live Xport node (requires https://xport.astrognosy.com to be up)"
+        help="Connect to a live reason:// registry node (requires https://reason.astrognosy.com to be up)"
     )
     args = parser.parse_args()
 

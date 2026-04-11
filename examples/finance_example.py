@@ -159,7 +159,7 @@ def run_finance_example(use_live_node: bool = False):
     print()
 
     if use_live_node:
-        client = ReasonClient(endpoint="https://xport.astrognosy.com")
+        client = ReasonClient(endpoint="https://reason.astrognosy.com")
         print("[1] Resolving artifact from live node...")
 
         try:
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--live",
         action="store_true",
-        help="Connect to a live Xport node (requires https://xport.astrognosy.com)"
+        help="Connect to a live reason:// registry node (requires https://reason.astrognosy.com)"
     )
     args = parser.parse_args()
 
