@@ -23,6 +23,7 @@ htmlcov/
 # Session / editor artifacts
 *.txt
 !README.txt
+!docs/ietf/*.txt
 
 # SQLite (local dev only — prod DB is on Railway volume)
 *.db
